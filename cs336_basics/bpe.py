@@ -250,50 +250,88 @@ def train_bpe(
 
     # create the initial vocab
     vocab = initialize_vocab(special_tokens)
-    # load the training file
-    # content = read_text_file(file_path=input_path)
-    # perform word count of the corpus (the character in the word is converted to byte)
-    # word_count = create_word_count(content,special_tokens)
+    
+    
     word_count = parallel_pre_tokenization(
         input_file=input_path,
         desired_num_chunks=desired_num_chunks,
         split_special_token=split_special_token,
         special_token=special_tokens,
     )
-    # store the merged tokens
+    
+    
     merges_list = []
-
-    while len(vocab) < vocab_size:
-
-        # scan through tokens for all words to get most frequent pair of tokens
-        # this will be the best token pair candidate for merging
-        pair_counts = {}
-        for word, freq in word_count.items():
-            for pair in zip(word, word[1:]):
-                # increment by the number of times this pair appears in the corpus not by 1
-                pair_counts[pair] = pair_counts.get(pair, 0) + freq
-
-        if not pair_counts:
-            break
-        # look for the best  pair, lexicographically greater pair are considered
-        best_pair = max(pair_counts, key=lambda p: (pair_counts[p], p))
-
-        # add to he merges list and update vocab
-        merges_list.append(best_pair)
+    pair_counts = {}
+    # create character pairs
+    for word, freq in word_count.items():
+        for pair in zip(word, word[1:]):
+            pair_counts[pair] = pair_counts.get(pair,0) + freq
+            
+    
+    while  len(vocab) < vocab_size:
+        
+        # get the best pair 
+        best_pair = max(pair_counts, key=lambda p: (pair_counts[p], p)) 
         new_token_id = len(vocab)
-        left, right = best_pair
-        vocab[new_token_id] = left + right
-
-        # replace best pair with new token id inside word count dictionary
+        merges_list.append(best_pair)
+        merged_token = best_pair[0] + best_pair[1]
+        vocab[new_token_id] = merged_token
+        
+        
         new_word_count = {}
+        
         for word, freq in word_count.items():
-            # new word with the merged tokens
-            new_word = merge(word, best_pair=best_pair,
-                             new_token_id=new_token_id)
+            # check if the word contains any elements in best pair
+            if best_pair[0] not in word or best_pair[1] not in word:
+                new_word_count[word] = freq
+                continue 
+            
+            # find positions and remove old pairs
+            for i in range(len(word) - 1):
+                if(word[i], word[i+1]) == best_pair:
+                    # Remove left pair
+                    if i > 0:
+                        left_pair = (word[i-1],word[i])
+                        pair_counts[left_pair] = pair_counts.get(left_pair,0) - freq
+                        
+                    
+                    # remove the merged pair
+                    pair_counts[best_pair] = pair_counts.get(best_pair,0) - freq
+                        
+                    
+                    # remove right pair
+                    if i+2 < len(word):
+                        right_pair = (word[i+1],word[i+2])
+                        pair_counts[right_pair] = pair_counts.get(right_pair,0) - freq
+                        
+                        
+            # merged word 
+            new_word = merge(word,best_pair,new_token_id)
             new_word_count[new_word] = freq
+            
+            # find position for merged tokens and pairs before and after
+            
+            for i in range(len(new_word)):
+                if new_word[i] == merged_token:
+                    
+                    # add pair to the left of the merged token
+                    if i > 0:
+                        new_left_pair = (new_word[i-1], merged_token)
+                        pair_counts[new_left_pair] = pair_counts.get(new_left_pair,0) + freq
+                    
+                    # add pair to the right of the merged token
+                    if i+1 < len(new_word):
+                        new_right_pair = (merged_token, new_word[i+1])
+                        pair_counts[new_right_pair] = pair_counts.get(new_right_pair,0) + freq 
+                
         word_count = new_word_count
-        # print(
-        #     f"Iter: {new_token_id} | Merged Pair: {best_pair} --> {vocab[new_token_id]} Frequency: {pair_counts[best_pair]}"
-        # )
-
+        
+        print(f"Iter:{new_token_id}|  Merged Pair: {best_pair} ---> {vocab[new_token_id]}|  Token ID: {new_token_id}")
+    
     return vocab, merges_list
+            
+        
+    
+    
+    
+    
