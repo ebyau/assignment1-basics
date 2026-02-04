@@ -10,7 +10,7 @@ import logging
 
 logging.basicConfig(filename="bpe_training.log",
                     format='%(asctime)s %(levelname)s: %(message)s',
-                    filemode='w')
+                    filemode='a')
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
@@ -22,17 +22,15 @@ logger.setLevel(logging.DEBUG)
 PATTERN = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
 
-def worker_count_chunk(args):
-    """Compute word counts for a single text chunk in a worker process. This helper is used to enable parallel pre-tokenization of large corpora.
-
-    Args:
-        args: Tuple containing the text chunk and the list of special tokens to exclude.
-
-    Returns:
-        dict[tuple[bytes, ...], int]: Mapping of tokenized word tuples to their frequency within the chunk.
-    """
-    text, special_tokens = args
-    return create_word_count(text, special_tokens)
+def worker_count_chunk_from_file(args):
+    input_file, start, end, special_tokens = args    
+    with open(input_file, "rb") as f:
+        f.seek(start)
+        chunk_bytes = f.read(end - start)
+    chunk = chunk_bytes.decode("utf-8", errors="ignore")        
+    # On Windows, text files often have \r\n (CRLF) line endings instead of \n used on unix systems
+    chunk = chunk.replace('\r\n', '\n').replace('\r', '')
+    return create_word_count(chunk, special_tokens)
 
 
 def parallel_pre_tokenization(
@@ -40,30 +38,28 @@ def parallel_pre_tokenization(
     desired_num_chunks: int,
     split_special_token: bytes,
     special_token: list,
+    num_workers: int
 ) -> dict[(tuple[bytes, int])]:
     
-    num_workers = max(1, cpu_count())
+    
     with open(input_file, "rb") as f:
         boundaries = find_chunk_boundaries(
             f,
             desired_num_chunks,
             split_special_token,
         )
-        tasks = []
-        for start, end in zip(boundaries, boundaries[1:]):
-            f.seek(start)
-            chunk = f.read(end - start).decode("utf-8", errors="ignore")
-            # On Windows, text files often have \r\n (CRLF) line endings instead of \n used on unix systems
-            chunk = chunk.replace('\r\n', '\n').replace('\r', '')
-            tasks.append((chunk, special_token))
-
-    with Pool(processes=num_workers) as pool:
-        per_chunk_counts = pool.map(worker_count_chunk, tasks)
-
-    # combine all per chunk dictionaries
+        # tasks are now (path, start, end, special_tokens)
+        tasks = [
+            (input_file, start, end, special_token)
+            for start, end in zip(boundaries, boundaries[1:])
+        ]
+    
     total_chunks_counts = Counter()
-    for chunk_dict in per_chunk_counts:
-        total_chunks_counts.update(chunk_dict)
+        
+    with Pool(processes=min(num_workers,len(tasks))) as pool:
+        for chunk_dict in pool.imap_unordered(worker_count_chunk_from_file, tasks, chunksize=1):
+            total_chunks_counts.update(chunk_dict)
+        
 
     return dict(total_chunks_counts)
 
@@ -235,6 +231,7 @@ def train_bpe(
     input_path: str,
     vocab_size: int,
     special_tokens: list,
+    desired_num_chunks: int = 6,
     split_special_token: bytes = b'<|endoftext|>',
 ) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     """Train a Byte Pair Encoding (BPE) tokenizer vocabulary and merge table from a text corpus.
@@ -269,16 +266,21 @@ def train_bpe(
     # create the initial vocab
     vocab = initialize_vocab(special_tokens)
     
+    num_workers = cpu_count() 
+    
+    logger.info(f"CPU Available: {num_workers}")
+    logger.info(f"Initial Available memory : {(start_memory)/1e9:.3f} GB")
+    logger.info(f"Chunks: {desired_num_chunks}")
     start_pre_token_time = time()
-    desired_num_chunks = cpu_count()
     word_count = parallel_pre_tokenization(
         input_file=input_path,
         desired_num_chunks=desired_num_chunks,
         split_special_token=split_special_token,
         special_token=special_tokens,
+        num_workers=num_workers
     )
     end_pre_token_time = time() 
-    logger.info(f"Chunks: {desired_num_chunks}")
+    
     logger.info(f"Pre-tokenization took {(end_pre_token_time - start_pre_token_time)/60:.3f} Minutes")
     
     

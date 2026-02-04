@@ -46,7 +46,7 @@ def get_longest_token(vocab: dict[int, bytes]):
         
     # sort by byte length
     token_lengths.sort(reverse=True)
-    return token_lengths[0]
+    return token_lengths
         
         
     
@@ -57,28 +57,42 @@ if __name__ == "__main__":
             "dataset_path": "../../data/TinyStoriesV2-GPT4-train.txt",
             "vocab_size": 10000,
             "special_tokens": ["<|endoftext|>"],
+               "document_chunks": 10
         },
         "openwebtext": {
-            "dataset_path": "../../data/owt_valid.txt",
+            "dataset_path": "../../data/owt_train.txt",
             "vocab_size": 32000,
             "special_tokens": ["<|endoftext|>"],
+            "document_chunks": 60
         },
     }
-
-    for dataset_name, config in datasets.items():
+    
+    
+    try:
         
-        logger.info(f"Starting training for {dataset_name}")
 
-        # train bpe on dataset with all required parameters
-        vocab, merges = train_bpe(
-            input_path=config["dataset_path"],
-            vocab_size=config["vocab_size"],
-            special_tokens=config["special_tokens"],
-        )
-        
-        # get the longest token
-        longest_token = get_longest_token(vocab)
-        logger.info(f"Longest: {longest_token[2]} ({longest_token[0]} bytes)")
+        for dataset_name, config in datasets.items():
+            
+            logger.info(f"-------------Starting training for {dataset_name}--------------------------")
 
-        # serialize to disk
-        serialize_to_disk(vocab, merges, dataset_name)
+            # train bpe on dataset with all required parameters
+            vocab, merges = train_bpe(
+                input_path=config["dataset_path"],
+                vocab_size=config["vocab_size"],
+                special_tokens=config["special_tokens"],
+                desired_num_chunks=config["document_chunks"]
+            )
+            
+            # get the longest token
+            longest_token = get_longest_token(vocab)
+            logger.info("Top 10 longest tokens:")
+            for i in range(10):
+                token = longest_token[i]           
+                logger.info(f"Token {10-i}: {token[2]} ({token[0]} bytes)")
+
+            
+            # serialize to disk
+            serialize_to_disk(vocab, merges, dataset_name)
+
+    except Exception as e:
+        logger.error(f"Training failed: {e}", exc_info=True)
