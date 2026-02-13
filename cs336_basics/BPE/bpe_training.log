@@ -1,0 +1,36 @@
+2026-02-04 16:22:44,278 INFO: -------------Starting training for tinystories--------------------------
+2026-02-04 16:22:44,278 INFO: CPU Available: 24
+2026-02-04 16:22:44,278 INFO: Initial Available memory : 44.774 GB
+2026-02-04 16:22:44,278 INFO: Chunks: 10
+2026-02-04 16:24:02,027 INFO: Pre-tokenization took 1.296 Minutes
+2026-02-04 16:27:09,173 INFO: BPE Training took 3.119 Minutes
+2026-02-04 16:27:09,173 INFO: Memory used during training 0.599 GB
+2026-02-04 16:27:09,183 INFO: Top 10 longest tokens:
+2026-02-04 16:27:09,183 INFO: Token 10: <|endoftext|> (13 bytes)
+2026-02-04 16:27:09,184 INFO: Token 9:  unexpected (11 bytes)
+2026-02-04 16:27:09,184 INFO: Token 8:  surprised (10 bytes)
+2026-02-04 16:27:09,184 INFO: Token 7:  something (10 bytes)
+2026-02-04 16:27:09,184 INFO: Token 6:  important (10 bytes)
+2026-02-04 16:27:09,184 INFO: Token 5:  beautiful (10 bytes)
+2026-02-04 16:27:09,184 INFO: Token 4:  together (9 bytes)
+2026-02-04 16:27:09,184 INFO: Token 3:  surprise (9 bytes)
+2026-02-04 16:27:09,184 INFO: Token 2:  squirrel (9 bytes)
+2026-02-04 16:27:09,184 INFO: Token 1:  remember (9 bytes)
+2026-02-04 16:27:09,193 INFO: -------------Starting training for openwebtext--------------------------
+2026-02-04 16:27:09,193 INFO: CPU Available: 24
+2026-02-04 16:27:09,193 INFO: Initial Available memory : 45.385 GB
+2026-02-04 16:27:09,193 INFO: Chunks: 60
+2026-02-04 16:30:42,181 INFO: Pre-tokenization took 3.550 Minutes
+2026-02-06 08:59:23,560 INFO: BPE Training took 2428.690 Minutes
+2026-02-06 08:59:23,560 INFO: Memory used during training 14.107 GB
+2026-02-06 08:59:25,305 INFO: Top 10 longest tokens:
+2026-02-06 08:59:25,305 INFO: Token 10: <|endoftext|> (13 bytes)
+2026-02-06 08:59:25,305 INFO: Token 9:  government (11 bytes)
+2026-02-06 08:59:25,305 INFO: Token 8:  through (8 bytes)
+2026-02-06 08:59:25,305 INFO: Token 7:  support (8 bytes)
+2026-02-06 08:59:25,305 INFO: Token 6:  differe (8 bytes)
+2026-02-06 08:59:25,305 INFO: Token 5:  between (8 bytes)
+2026-02-06 08:59:25,305 INFO: Token 4:  because (8 bytes)
+2026-02-06 08:59:25,305 INFO: Token 3:  against (8 bytes)
+2026-02-06 08:59:25,305 INFO: Token 2: ational (7 bytes)
+2026-02-06 08:59:25,305 INFO: Token 1:  though (7 bytes)
